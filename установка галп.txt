@@ -1,0 +1,205 @@
+САМОЕ ГЛАВНОЕ. КАК ИСПОЛЬЗОВАТЬ СБОРКУ В НОВОМ ПРОЕКТЕ ИЛИ НА НОВОМ ПК
+
+мы копируем только три файла из сборки которую щас собрали  это :
+app, 
+gulpfile.js
+package.json
+
+
+делаем папку со сборкой и вставляем эти три файла туда
+теперь когда создаём папку с новым проектом берем эту папку и кидаем в папку с проектом
+открываем терминал либо в вс код в самом проекте,либо в папке,где файл package.json 
+и прописываем просто npm i
+и начнется установка всех наших плагинов которые есть в нашей сборке.
+
+node_modules - копировать не надо,оно само установиться
+
+
+скачиваем node.js устанавливаем.
+
+npm i gulp -g  - глобальная установка галпа в систему,помоему ставиться один раз.
+
+создаём папку с проектом, в ней папку app, в которой создаются наши обычные файлы проекта типа index.html,fonts,images, js.
+
+создаём файл gulpfile.js в папке с проектом. - не в app.
+
+устанавливаем в терминале вс код или винды,только в папке с проектом если с винды локально галп. npm init - инициализация
+можно всё пропустить,заполнить к примеру только author - написать своё имя или че угодно)
+
+затем npm i gulp --save-dev - локальная установка галпа в новый проект.  - установка плагинов с --save-dev обязательна.
+
+в link подключаем min.css и libs.min.css, в скриптах подключаем наш js/main.min.js и js/libs.min.js , + jquery.
+
+устанавливаем плагин sass для галпа, npm install gulp-sass --save-dev должно появиться в package.json надпись 
+"gulp-sass": "^4.1.0" - возможно будет тоже ставиться один раз,ведь это сборка и ее можно будет юзать в проектах готовую.
+
+создаём в app папку scss и style.scss
+
+в gulpfile.js создаём две переменных для плагина sass такого вида
+let gulp = require('gulp'),
+  sass = require('gulp-sass'); - сначала будут они темные ничего страшного,дальше заработают,пока в них ничего нет и они не юзаются.
+
+дальше создаём таск для галпа для подключения сасс такого вида
+gulp.task('sass', function () {
+ return gulp.src('app/scss/style.scss')   - тут будет путь откуда будет браться файл scss
+    .pipe(sass())
+    .pipe(gulp.dest('app/css'))  - а тут путь куда будет класться сконвертированный scss в css. 
+});
+
+так делается видимо для всех тасков когда создаешь,указывается путь и тд ( но это не точно)
+
+писать лучше именно sass , так как он понимает и sass и scss.
+
+выполняем наш таск в терминале командой gulp sass - вылезет вопрос вроде ничего страшного. потом исправиться наверное
+
+появится у нас папка css и файл style.css 
+
+нужно будет все время вызывать эту команду чтобы оно конвертировалось в css, но дальше сделаем на автомате.
+
+устанавливаем плагин ренейм для того чтобы переименовать наш css в min.css как мы подключили в html. общая структура на 
+данный момент выглядит так в gulpfile.js
+let gulp = require('gulp'),
+  sass = require('gulp-sass'),
+  rename = require('gulp-rename'); - создали так же переменную для ренейм
+
+gulp.task('sass', function () {
+  return gulp.src('app/scss/style.scss')
+    .pipe(sass({ outputStyle: 'compressed' }))  - здесь просто меняем стили минификации кода, при конвертации. expanded,nested,compressed,compact
+    .pipe(rename({suffix : '.min'}))  - здесь просто добавляем суффикс .min к нашему css.
+    .pipe(gulp.dest('app/css'))
+});
+
+style css можно удалить из папки css.
+
+создаём таск для слежения за сасс,чтобы автоматом все конвертировалось такого вида 
+gulp.task('watch', function () {
+  gulp.watch('app/scss/style.scss', gulp.parallel('sass')); - указываем путь,если будут какие то изменения обращаемся к методу sass,
+							      и он автоматически конвертирует scss в наш файл .min.css
+
+});
+
+не забываем запустить watch командой gulp watch и он будет в прямом эфире конвертировать.
+ctrl+C выйти из режима watch, если надо что то еще писать в терминале.
+
+(npm uninstall название пакета --save) - удаление не нужного плагина.
+
+npm i browser-sync --save-dev - установка плагина browsersync, для автоматического обновления когда переходишь в браузер. 
+можно отказаться от live server.
+
+создаём переменную для browserSync -  browserSync = require('browser-sync');
+добавляем трубу для него же - .pipe(browserSync.reload({stream: true}))
+
+таск для browserSync  - с документации,только путь указать наш через app/, - чтобы он работал для папок html,js 
+gulp.task('browser-sync', function() {
+  browserSync.init({
+      server: {
+          baseDir: "app/"
+      }
+  });
+});
+
+создаём таск для html файлов для браузерсинка
+
+gulp.task('html', function () {
+  return gulp.src('app/*.html')  - тут берутся все .html файлы проекта.
+  .pipe(browserSync.reload({stream: true}))
+
+});
+
+делаем такой же таск только для js
+gulp.task('js', function () {
+  return gulp.src('app/js/*.js')  - тут берутся все .js файлы проекта
+  .pipe(browserSync.reload({stream: true}))
+
+});
+
+
+добавляем в таск watch, пути для .html и .js файлов,чтобы watch следил за изменениями там.
+
+gulp.task('watch', function () {
+  gulp.watch('app/scss/style.scss', gulp.parallel('sass'))
+  gulp.watch('app/*.html', gulp.parallel('html'))
+   gulp.watch('app/js/*.js', gulp.parallel('js'))
+});
+
+так как запуск watch и browserSync должны работать одновременно,а запускать две консоли не очень удобно,потому что watch забивает
+консоль. то можно сделать общий таск в котором прописать все остальные таски которые нужно запускать по одному слову,по типу общего
+класса с общими стилями. Выглядит так
+gulp.task('default', gulp.parallel('sass', 'watch', 'browser-sync'))
+
+теперь при команде gulp - запустяться все три таска прописанные по имени тасков внутри.
+
+фишка browserSync еще в том,что если комп подключен по вай фай сети как и телефон или планшет, то можно зайти с телефона
+по айпи адресу в терминале и увидеть как выглядит сайт на твоем телефоне. http://192.168.1.60:3000
+
+устанавливаем автопрефиксер в сборку npm i gulp-autoprefixer --save-dev 
+
+создаём переменную там же где и все остальные для него
+autoprefixer = require('gulp-autoprefixer');
+
+в таске с sass делаем еще одну трубу для автопрефиксера с настройкой для последних версий браузеров выглядит так
+
+.pipe(autoprefixer({
+      overrideBrowserslist: ['last 8 versions']    
+        }))
+
+вобщем так можно подключать все плагины,в том числе слайдеры,нормалайзы,попапы. щас подключаем магнифик попап
+npm i magnific-popup --save-dev
+
+можно установить сразу два плагина к примеру мы установили слик и нормалайз таким образом
+npm i slick-carousel normalize.css --save-dev
+
+нужно сконкотенировать файлы и минифицировать js и css, как мы подключили в html файле через .min.css, .min.js
+устанавливаем плагины 
+npm i gulp-concat gulp-uglify --save-dev
+
+gulp-uglify - минифкатор js
+
+создаём так же переменные для них
+	concat = require('gulp-concat'),
+    	uglify = require('gulp-uglify');
+
+создаём таск для объединения попапа и слика
+и объединяем их в одну либу 
+
+gulp.task('script', function(){
+  return gulp.src([
+    
+    'node_modules/slick-carousel/slick/slick.js', - прописываем путь до slick.js
+    'node_modules/magnific-popup/dist/jquery.magnific-popup.js' - здесь путь до попапа. все плагины лежат в node_modules.
+  ])
+    .pipe(concat('libs.min.js'))  - тут мы их объединяем при помощи gulp-concat(который мы уже установили)
+                                    в один libs.min.js , который у нас подключен в html.
+    .pipe(uglify()) -далее минифицируем
+    .pipe(gulp.dest('app/js'))	- и указываем путь в нашу js папку куда это все будет выгружаться			     
+});
+
+если нужно еще какой то плагин,устанавливаем,и прописываем путь до него. то есть именно до js файла.
+
+и потом добавляем в общий таск default строчку  'script' , - т.е название нашего таска.
+
+и теперь при команде gulp script - у нас подключается слик и попап и появлется файл .libs.min.js - который подключен в html
+
+делаем все тоже самое для подключения слика и попапа только с css. устанавливаем плагин cssmin
+npm i gulp-cssmin --save-dev
+
+далее переменная 
+cssmin = require('gulp-cssmin');
+
+и копируем таск из жса,только меняем название и пути до css файлов слика и попапа.
+
+gulp.task('style', function(){
+  return gulp.src([
+    'node_modules/normalize.css/normalize.css', - подключаем так же нормалайз, просто прописываем до него путь.
+    'node_modules/slick-carousel/slick/slick.css',
+    'node_modules/magnific-popup/dist/magnific-popup.css'
+  ])
+    .pipe(concat('libs.min.css'))
+    .pipe(cssmin())
+    .pipe(gulp.dest('app/css'))
+});
+
+теперь при команде gulp у нас запустяться все эти файлы и плагины,либо можно конкретно подключить какой то типa
+gulp watch, или gulp style, gulp script и тд. 
+
+
